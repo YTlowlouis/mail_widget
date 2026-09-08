@@ -1,8 +1,8 @@
 """Serveur MCP stdio pour l'accès mail. Aucun appel LLM ici.
 
-Les 7 tools (lecture + écriture) sont tous enregistrés ici pour rester utilisables
+Les 8 tools (lecture + écriture) sont tous enregistrés ici pour rester utilisables
 depuis l'inspector MCP ou toute autre CLI. C'est au daemon (phase 2) de ne passer
-au modèle Claude que les tools de lecture — jamais les tools d'écriture.
+au modèle que les tools de lecture — jamais les tools d'écriture.
 """
 from __future__ import annotations
 
@@ -79,6 +79,17 @@ def unsubscribe(message_id: str) -> dict:
     Outil d'écriture: à appeler uniquement depuis le daemon/widget, jamais par le modèle.
     """
     return imap_client.unsubscribe(message_id)
+
+
+@mcp.tool()
+def save_draft_reply(message_id: str, body: str) -> dict:
+    """Enregistre une réponse en brouillon dans le dossier Brouillons (threading RFC 5322
+    correct: In-Reply-To/References/Re:). N'envoie jamais rien — aucun outil d'envoi de mail
+    n'existe dans ce projet, le brouillon reste à valider manuellement par l'utilisateur.
+
+    Outil d'écriture: à appeler uniquement depuis le daemon/widget, jamais par le modèle.
+    """
+    return imap_client.save_draft_reply(message_id, body)
 
 
 def main() -> None:

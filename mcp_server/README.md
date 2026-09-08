@@ -36,6 +36,9 @@ au modèle par le daemon — voir la contrainte de sécurité du projet) :
 - `move_to_trash(message_id)` — jamais d'EXPUNGE, mémorise le dossier d'origine
 - `restore(message_id)` — restaure depuis la Corbeille vers le dossier mémorisé
 - `unsubscribe(message_id)` — POST one-click (RFC 8058) si supporté, sinon retourne l'URL sans l'ouvrir
+- `save_draft_reply(message_id, body)` — enregistre une réponse dans le dossier Brouillons
+  (threading RFC 5322 correct). N'envoie jamais rien: aucun outil d'envoi de mail n'existe
+  dans ce projet, à aucune phase.
 
 ## Tester avec l'inspector MCP
 
@@ -49,7 +52,7 @@ Ou sans installation du package, directement depuis les sources :
 npx @modelcontextprotocol/inspector python3 -m mail_mcp.server
 ```
 
-L'inspector doit lister les 7 tools et permettre d'appeler `list_recent` sans écrire de code.
+L'inspector doit lister les 8 tools et permettre d'appeler `list_recent` sans écrire de code.
 
 ## Notes d'implémentation
 

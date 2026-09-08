@@ -57,6 +57,7 @@ class FakeMailBox:
         self.folder = FakeFolderManager(folders)
         self._messages_by_folder = {k: list(v) for k, v in messages_by_folder.items()}
         self.moves: list[tuple[str, tuple[str, ...], str]] = []
+        self.appended: list[tuple[bytes, str, list[str] | None]] = []
 
     def uids(self, criteria) -> list[str]:
         criteria_str = str(criteria)
@@ -88,6 +89,9 @@ class FakeMailBox:
                     src_messages.remove(msg)
                     dest_messages.append(msg)
         self.moves.append((src_folder, tuple(uid_list), destination_folder))
+
+    def append(self, message: bytes, folder: str, dt=None, flag_set: list[str] | None = None) -> None:
+        self.appended.append((message, folder, flag_set))
 
 
 @contextmanager

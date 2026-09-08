@@ -7,6 +7,8 @@ import re
 import urllib.error
 import urllib.request
 from contextlib import contextmanager
+from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
 from typing import Any, Iterator
 
 from imap_tools import AND, Header, MailBox
@@ -63,6 +65,15 @@ def trash_folder(mb: MailBox) -> str:
     )
     if not folder:
         raise ImapConfigError("Dossier Corbeille introuvable sur le serveur (pas de flag \\Trash ni de nom connu)")
+    return folder
+
+
+def drafts_folder(mb: MailBox) -> str:
+    folder = _special_use_folder(
+        mb, "\\Drafts", ("[Gmail]/Drafts", "[Gmail]/Brouillons", "Drafts")
+    )
+    if not folder:
+        raise ImapConfigError("Dossier Brouillons introuvable sur le serveur (pas de flag \\Drafts ni de nom connu)")
     return folder
 
 
@@ -198,3 +209,48 @@ def unsubscribe(message_id: str) -> dict[str, Any]:
         }
 
     return {"status": "error", "url": None, "detail": "Aucune méthode de désabonnement exploitable dans l'en-tête"}
+
+
+def _build_reply_message(original: MailMessage, body: str) -> bytes:
+    """Construit un brouillon de réponse RFC 5322: threading (In-Reply-To/References),
+    'Re:' non dupliqué, De: l'adresse du compte (IMAP_USER), corps texte brut fourni tel quel.
+
+    N'envoie jamais rien: le résultat est uniquement destiné à mb.append() dans le dossier
+    Brouillons. Aucun outil d'envoi de mail n'existe nulle part dans ce projet.
+    """
+    original_subject = original.subject or ""
+    subject = original_subject if original_subject.lower().startswith("re:") else f"Re: {original_subject}"
+
+    original_message_id = original.headers.get("message-id", ("",))[0]
+    original_references = original.headers.get("references", (None,))[0]
+    references = f"{original_references} {original_message_id}".strip() if original_references else original_message_id
+
+    msg = EmailMessage()
+    msg["From"] = os.environ.get("IMAP_USER", "")
+    msg["To"] = original.from_
+    msg["Subject"] = subject
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid()
+    if original_message_id:
+        msg["In-Reply-To"] = original_message_id
+    if references:
+        msg["References"] = references
+    msg.set_content(body)
+    return msg.as_bytes()
+
+
+def save_draft_reply(message_id: str, body: str) -> dict[str, Any]:
+    with session() as mb:
+        trash = trash_folder(mb)
+        folder, uid = _locate(mb, message_id, trash)
+        mb.folder.set(folder)
+        messages = list(mb.fetch(AND(uid=uid), mark_seen=False, headers_only=True))
+        if not messages:
+            raise MessageNotFoundError(message_id)
+        original: MailMessage = messages[0]
+
+        drafts = drafts_folder(mb)
+        draft_bytes = _build_reply_message(original, body)
+        mb.append(draft_bytes, drafts, flag_set=["\\Draft"])
+
+    return {"status": "ok", "folder": drafts, "detail": None}

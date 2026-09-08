@@ -1,3 +1,6 @@
+import email
+import email.policy
+
 import pytest
 from fakes import FakeMailBox, FakeMessage, const_session
 from imap_tools.folder import FolderInfo
@@ -10,6 +13,10 @@ def _mailbox_with_trash(flags=("\\Trash",), trash_name="[Gmail]/Trash"):
         FolderInfo(name="INBOX", delim="/", flags=()),
         FolderInfo(name=trash_name, delim="/", flags=flags),
     ]
+
+
+def _mailbox_with_trash_and_drafts():
+    return _mailbox_with_trash() + [FolderInfo(name="[Gmail]/Drafts", delim="/", flags=("\\Drafts",))]
 
 
 def test_locate_finds_message_in_inbox():
@@ -178,3 +185,66 @@ def test_unsubscribe_without_header_errors(monkeypatch):
     result = imap_client.unsubscribe("<u3@example.com>")
     assert result["status"] == "error"
     assert result["url"] is None
+
+
+def test_drafts_folder_uses_special_use_flag():
+    mb = FakeMailBox(_mailbox_with_trash_and_drafts(), {})
+    assert imap_client.drafts_folder(mb) == "[Gmail]/Drafts"
+
+
+def test_drafts_folder_raises_when_not_found():
+    mb = FakeMailBox(_mailbox_with_trash(), {})
+    with pytest.raises(imap_client.ImapConfigError):
+        imap_client.drafts_folder(mb)
+
+
+def test_save_draft_reply_appends_to_drafts_with_correct_threading(monkeypatch):
+    monkeypatch.setenv("IMAP_USER", "moi@example.com")
+    original = FakeMessage(
+        "<original@example.com>",
+        "1",
+        from_="expediteur@example.com",
+        subject="Question sur la facture",
+        headers={"references": ("<root@example.com>",)},
+    )
+    mb = FakeMailBox(_mailbox_with_trash_and_drafts(), {"INBOX": [original], "[Gmail]/Trash": []})
+    monkeypatch.setattr(imap_client, "session", lambda: const_session(mb))
+
+    result = imap_client.save_draft_reply("<original@example.com>", "Merci, je regarde ça.")
+
+    assert result == {"status": "ok", "folder": "[Gmail]/Drafts", "detail": None}
+    assert len(mb.appended) == 1
+    draft_bytes, folder, flag_set = mb.appended[0]
+    assert folder == "[Gmail]/Drafts"
+    assert flag_set == ["\\Draft"]
+
+    draft = email.message_from_bytes(draft_bytes, policy=email.policy.default)
+    assert draft["From"] == "moi@example.com"
+    assert draft["To"] == "expediteur@example.com"
+    assert draft["Subject"] == "Re: Question sur la facture"
+    assert draft["In-Reply-To"] == "<original@example.com>"
+    assert draft["References"] == "<root@example.com> <original@example.com>"
+    assert "Merci, je regarde ça." in draft.get_content()
+
+
+def test_save_draft_reply_does_not_double_prefix_subject(monkeypatch):
+    monkeypatch.setenv("IMAP_USER", "moi@example.com")
+    original = FakeMessage("<a@example.com>", "1", subject="Re: Déjà une réponse")
+    mb = FakeMailBox(_mailbox_with_trash_and_drafts(), {"INBOX": [original], "[Gmail]/Trash": []})
+    monkeypatch.setattr(imap_client, "session", lambda: const_session(mb))
+
+    imap_client.save_draft_reply("<a@example.com>", "Suite")
+
+    draft = email.message_from_bytes(mb.appended[0][0], policy=email.policy.default)
+    assert draft["Subject"] == "Re: Déjà une réponse"
+
+
+def test_save_draft_reply_raises_when_message_not_found(monkeypatch):
+    monkeypatch.setenv("IMAP_USER", "moi@example.com")
+    mb = FakeMailBox(_mailbox_with_trash_and_drafts(), {"INBOX": [], "[Gmail]/Trash": []})
+    monkeypatch.setattr(imap_client, "session", lambda: const_session(mb))
+
+    with pytest.raises(imap_client.MessageNotFoundError):
+        imap_client.save_draft_reply("<missing@example.com>", "corps")
+
+    assert mb.appended == []
