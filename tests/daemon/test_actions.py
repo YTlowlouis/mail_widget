@@ -13,6 +13,7 @@ def _config(tmp_path):
         poll_interval_seconds=180,
         poll_limit=30,
         poll_folder="INBOX",
+        thread_delay_seconds=0,
         mail_mcp_command="mail-mcp",
         archive_folder="[Gmail]/All Mail",
         cache_dir=tmp_path,

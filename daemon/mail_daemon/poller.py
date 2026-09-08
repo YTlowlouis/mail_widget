@@ -1,6 +1,7 @@
 """Un cycle de poll: liste l'INBOX, regroupe les fils nouveaux, les fait classer par le modèle."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -37,7 +38,11 @@ async def run_poll_cycle(
         seen_ids = cache.known_message_ids(s["message_id"] for s in summaries)
         new_summaries = [s for s in summaries if s["message_id"] not in seen_ids]
 
-        for thread_key, group in _group_new_by_thread(new_summaries).items():
+        for i, (thread_key, group) in enumerate(_group_new_by_thread(new_summaries).items()):
+            if i > 0 and config.thread_delay_seconds > 0:
+                # Étale les appels au modèle pour éviter de marteler le rate limit du tier
+                # gratuit lors d'un gros rattrapage initial (beaucoup de fils jamais vus).
+                await asyncio.sleep(config.thread_delay_seconds)
             await _process_new_thread(config, cache, groq_client, session, read_tools, thread_key, group)
 
         return _build_state_entries(summaries, cache)

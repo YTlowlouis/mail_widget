@@ -32,6 +32,7 @@ def _config(tmp_path):
         poll_interval_seconds=180,
         poll_limit=30,
         poll_folder="INBOX",
+        thread_delay_seconds=0,
         mail_mcp_command="mail-mcp",
         archive_folder="[Gmail]/All Mail",
         cache_dir=tmp_path,
@@ -211,3 +212,37 @@ def test_invalid_classification_leaves_thread_unmarked_for_retry(monkeypatch, tm
         assert cache.known_message_ids(["<a@x>"]) == set()  # pas marqué vu, sera retenté
         assert threads[0]["urgence"] == "info"
         assert "pas encore classé" in threads[0]["raison"]
+
+
+def test_thread_delay_paces_calls_between_distinct_threads_but_not_before_the_first(monkeypatch, tmp_path):
+    config = Config(
+        groq_api_key="x",
+        model="m",
+        poll_interval_seconds=180,
+        poll_limit=30,
+        poll_folder="INBOX",
+        thread_delay_seconds=2,
+        mail_mcp_command="mail-mcp",
+        archive_folder="[Gmail]/All Mail",
+        cache_dir=tmp_path,
+        state_path=tmp_path / "state.json",
+        cache_db_path=tmp_path / "cache.sqlite3",
+    )
+    summaries = [_summary("<a@x>", "s1", "2026-01-01T00:00:00"), _summary("<b@x>", "s2", "2026-01-02T00:00:00")]
+    bodies = {
+        "<a@x>": {"message_id": "<a@x>", "from": "a@x.com", "subject": "s1", "date": "2026-01-01", "body_text": "...", "truncated": False},
+        "<b@x>": {"message_id": "<b@x>", "from": "a@x.com", "subject": "s2", "date": "2026-01-02", "body_text": "...", "truncated": False},
+    }
+    classification = EmailClassification(resume="r", urgence="info", raison="j")
+
+    sleep_calls = []
+
+    async def fake_sleep(seconds):
+        sleep_calls.append(seconds)
+
+    monkeypatch.setattr(poller.asyncio, "sleep", fake_sleep)
+
+    with Cache(config.cache_db_path) as cache:
+        _run_poll_cycle_with_fakes(config, cache, summaries, bodies, classification, monkeypatch)
+
+    assert sleep_calls == [2]  # une seule pause, entre le 1er et le 2e fil, pas avant le 1er

@@ -29,6 +29,7 @@ class Config:
     poll_interval_seconds: int
     poll_limit: int
     poll_folder: str
+    thread_delay_seconds: float
     mail_mcp_command: str
     archive_folder: str
     cache_dir: Path
@@ -51,6 +52,9 @@ def load_config() -> Config:
         poll_interval_seconds=int(os.environ.get("MAIL_WIDGET_POLL_SECONDS", "180")),
         poll_limit=int(os.environ.get("MAIL_WIDGET_POLL_LIMIT", "30")),
         poll_folder=os.environ.get("MAIL_MCP_DEFAULT_FOLDER", "INBOX"),
+        # Espacement entre deux appels au modèle dans un même cycle, pour ne pas dépasser le
+        # rate limit du tier gratuit lors d'un gros rattrapage initial (beaucoup de mails jamais vus).
+        thread_delay_seconds=float(os.environ.get("MAIL_WIDGET_THREAD_DELAY_SECONDS", "2")),
         mail_mcp_command=os.environ.get("MAIL_MCP_COMMAND", "mail-mcp"),
         # Gmail n'a pas de dossier "Archive": archiver = retirer de INBOX en gardant le mail
         # visible dans "Tous les messages". Pas de résolution dynamique possible ici (le daemon
