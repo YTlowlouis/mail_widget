@@ -1,0 +1,124 @@
+$bg: #1e1e2e;
+$bg-card: #2a2a3c;
+$fg: #cdd6f4;
+$fg-dim: #9399b2;
+$action: #f38ba8;
+$info: #89b4fa;
+$bruit: #6c7086;
+$border-radius: 10px;
+
+window.MailWidget {
+  background: transparent;
+}
+
+.root {
+  background-color: $bg;
+  color: $fg;
+  padding: 10px;
+  border-radius: $border-radius;
+}
+
+.header {
+  padding: 4px 6px 8px 6px;
+
+  .title {
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+}
+
+.error-banner {
+  background-color: rgba(243, 139, 168, 0.15);
+  color: $action;
+  padding: 6px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.empty {
+  color: $fg-dim;
+  padding: 20px;
+}
+
+.thread-list-scroll {
+  min-width: 360px;
+}
+
+.thread-card {
+  background-color: $bg-card;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid $bruit;
+
+  &.urgence-action {
+    border-left-color: $action;
+  }
+
+  &.urgence-info {
+    border-left-color: $info;
+  }
+
+  &.urgence-bruit {
+    border-left-color: $bruit;
+    opacity: 0.85;
+  }
+}
+
+.badge {
+  font-size: 0.75em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: $bg;
+  font-weight: bold;
+
+  &.badge-action {
+    background-color: $action;
+  }
+
+  &.badge-info {
+    background-color: $info;
+  }
+
+  &.badge-bruit {
+    background-color: $bruit;
+  }
+}
+
+.from {
+  font-weight: bold;
+}
+
+.date,
+.count {
+  color: $fg-dim;
+  font-size: 0.85em;
+}
+
+.resume {
+  margin: 2px 0;
+}
+
+.status-message {
+  color: $info;
+  font-size: 0.85em;
+}
+
+.undo-bar {
+  background-color: rgba(243, 139, 168, 0.12);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.actions {
+  margin-top: 4px;
+}
+
+.action-btn {
+  font-size: 0.85em;
+  padding: 2px 8px;
+}
+
+.otp-btn {
+  color: $info;
+  font-weight: bold;
+}
