@@ -1,5 +1,5 @@
 [Unit]
-Description=Mail widget daemon (résumé et tri des mails via Claude)
+Description=Mail widget daemon (résumé et tri des mails via Groq)
 After=network-online.target
 Wants=network-online.target
 

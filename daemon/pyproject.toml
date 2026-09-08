@@ -1,10 +1,10 @@
 [project]
 name = "mail-widget-daemon"
 version = "0.1.0"
-description = "Client MCP + boucle Claude qui produit l'état lu par le widget"
+description = "Client MCP + boucle Groq qui produit l'état lu par le widget"
 requires-python = ">=3.10"
 dependencies = [
-    "anthropic[mcp]>=1.4",
+    "groq>=0.11",
     "mcp>=2.0",
     "pydantic>=2.0",
     "python-dotenv>=1.0",

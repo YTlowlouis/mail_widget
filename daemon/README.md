@@ -1,7 +1,12 @@
-# mail_daemon — client MCP + boucle Claude
+# mail_daemon — client MCP + boucle Groq
 
 Lit les mails via `mcp_server` (jamais directement), fait résumer/classer les nouveaux fils
-par Claude, écrit `~/.cache/mail-widget/state.json`. N'appelle jamais IMAP directement.
+par un modèle Groq, écrit `~/.cache/mail-widget/state.json`. N'appelle jamais IMAP directement.
+
+Groq n'a pas d'équivalent au `tool_runner` d'Anthropic (pas de helper MCP côté client, pas de
+structured output natif fiable multi-modèles) : la boucle d'agent (appel modèle -> tool_calls
+-> exécution -> réponse) et la validation du JSON de sortie sont donc implémentées à la main
+dans `classifier.py`, plutôt que déléguées au SDK.
 
 ## Installation
 
@@ -16,8 +21,11 @@ pip install -e .
 
 ```bash
 cp .env.example .env
-# édite .env: au minimum ANTHROPIC_API_KEY
+# édite .env: au minimum GROQ_API_KEY
 ```
+
+Clé API Groq (gratuite pour démarrer, pas de carte bancaire requise) :
+https://console.groq.com -> API Keys -> Create API Key
 
 Les identifiants IMAP restent dans `mcp_server/.env` (déjà configuré en phase 1) — le daemon
 les charge automatiquement de là, inutile de les dupliquer.
@@ -33,7 +41,8 @@ mail-widget-daemon
 ```
 
 Poll toutes les 3 minutes (`MAIL_WIDGET_POLL_SECONDS`), écrit l'état dans
-`~/.cache/mail-widget/state.json` après chaque cycle.
+`~/.cache/mail-widget/state.json` après chaque cycle. Modèle par défaut :
+`llama-3.3-70b-versatile` (configurable via `MAIL_WIDGET_MODEL`).
 
 ## Vérifier le résultat
 
@@ -71,14 +80,16 @@ journalctl --user -u mail-widget-daemon -f
 
 - Le modèle ne reçoit que `list_recent`, `get_email`, `search_emails` comme tools
   (`mcp_tools.READ_TOOL_NAMES`) — jamais les tools d'écriture, même si le serveur MCP les
-  expose tous. Voir `mcp_tools.list_read_tools`.
+  expose tous. Voir `mcp_tools.list_read_tools`. La boucle manuelle dans `classifier.py`
+  refuse en plus explicitement tout appel de tool hors de cette liste, en défense
+  supplémentaire (`_execute_tool_call`).
 - Les actions d'écriture (`actions.py`, exposées via `cli.py`) appellent le serveur MCP
-  directement, sans jamais passer par une boucle d'agent Claude.
+  directement, sans jamais passer par une boucle d'agent.
 - Le corps de chaque mail est délimité par `<email>...</email>` dans le prompt et présenté
   explicitement comme des données, pas des instructions (voir `classifier.SYSTEM_PROMPT`).
   Il est déjà HTML-strippé et tronqué à ~2000 caractères par `mcp_server`.
-- La sortie du modèle est demandée avec un schéma pydantic strict (`schema.py`,
-  `output_format=EmailClassification`). Si elle ne valide pas, elle est rejetée : le fil
-  n'est marqué "vu" nulle part et sera retenté au prochain poll, jamais affiché comme une
-  vraie classification inventée.
+- La sortie du modèle doit être un objet JSON à trois champs, validé strictement contre le
+  schéma pydantic `EmailClassification` (`schema.py`). Si le JSON est absent, malformé, ou ne
+  valide pas le schéma, il est rejeté : le fil n'est marqué "vu" nulle part et sera retenté au
+  prochain poll, jamais affiché comme une vraie classification inventée.
 - Aucun outil d'envoi de mail n'existe nulle part dans le projet.

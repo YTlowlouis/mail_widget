@@ -1,10 +1,10 @@
-"""Un cycle de poll: liste l'INBOX, regroupe les fils nouveaux, les fait classer par Claude."""
+"""Un cycle de poll: liste l'INBOX, regroupe les fils nouveaux, les fait classer par le modèle."""
 from __future__ import annotations
 
 import logging
 from typing import Any
 
-import anthropic
+import groq
 
 from . import mcp_tools
 from .cache import Cache
@@ -24,7 +24,7 @@ def _group_new_by_thread(new_summaries: list[dict[str, Any]]) -> dict[str, list[
 
 
 async def run_poll_cycle(
-    config: Config, cache: Cache, anthropic_client: anthropic.AsyncAnthropic
+    config: Config, cache: Cache, groq_client: groq.AsyncGroq
 ) -> list[dict[str, Any]]:
     async with mcp_tools.mcp_session(config.mail_mcp_command) as session:
         read_tools = await mcp_tools.list_read_tools(session)
@@ -38,7 +38,7 @@ async def run_poll_cycle(
         new_summaries = [s for s in summaries if s["message_id"] not in seen_ids]
 
         for thread_key, group in _group_new_by_thread(new_summaries).items():
-            await _process_new_thread(config, cache, anthropic_client, session, read_tools, thread_key, group)
+            await _process_new_thread(config, cache, groq_client, session, read_tools, thread_key, group)
 
         return _build_state_entries(summaries, cache)
 
@@ -46,7 +46,7 @@ async def run_poll_cycle(
 async def _process_new_thread(
     config: Config,
     cache: Cache,
-    anthropic_client: anthropic.AsyncAnthropic,
+    groq_client: groq.AsyncGroq,
     session: Any,
     read_tools: list[Any],
     thread_key: str,
@@ -57,7 +57,7 @@ async def _process_new_thread(
     representative_body = mcp_tools.parse_tool_result(body_result)
 
     context = build_email_context(representative_body, group)
-    classification = await classify_thread(anthropic_client, session, read_tools, config.model, context)
+    classification = await classify_thread(groq_client, session, read_tools, config.model, context)
 
     if classification is None:
         # Sortie invalide ou appel échoué: rien n'est marqué comme vu, on retentera ce fil

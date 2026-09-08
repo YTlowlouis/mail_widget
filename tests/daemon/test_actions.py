@@ -8,7 +8,7 @@ from mail_daemon.config import Config
 
 def _config(tmp_path):
     return Config(
-        anthropic_api_key="x",
+        groq_api_key="x",
         model="m",
         poll_interval_seconds=180,
         poll_limit=30,

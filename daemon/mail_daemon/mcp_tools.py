@@ -1,7 +1,7 @@
 """Client MCP côté daemon: lance mail-mcp en stdio, expose les tools de lecture au modèle.
 
 Les tools d'écriture sont accessibles ici (call_tool direct, cf. actions.py) mais ne sont
-JAMAIS inclus dans la liste passée au tool_runner de Claude — c'est la garde-fou central de
+JAMAIS inclus dans la liste passée au modèle — c'est le garde-fou central de
 la contrainte de sécurité du projet: le modèle ne doit jamais pouvoir écrire dans la boîte.
 """
 from __future__ import annotations

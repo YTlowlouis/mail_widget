@@ -27,8 +27,8 @@ def _summary(message_id, subject, date, *, unread=True, in_reply_to=None, refere
 
 def _config(tmp_path):
     return Config(
-        anthropic_api_key="x",
-        model="claude-haiku-4-5-20251001",
+        groq_api_key="x",
+        model="llama-3.3-70b-versatile",
         poll_interval_seconds=180,
         poll_limit=30,
         poll_folder="INBOX",
@@ -97,7 +97,7 @@ def test_build_state_entries_aggregates_message_count_and_unread(tmp_path):
     assert entries[0]["date"] == "2026-01-02T00:00:00"  # date du message le plus récent
 
 
-# -- run_poll_cycle (intégration, MCP + Claude mockés) ------------------------
+# -- run_poll_cycle (intégration, MCP + modèle mockés) ------------------------
 
 
 class FakeSession:
@@ -131,7 +131,7 @@ def _run_poll_cycle_with_fakes(config, cache, summaries, bodies, classification,
 
     call_count = 0
 
-    async def fake_classify_thread(anthropic_client, session_, read_tools, model, context):
+    async def fake_classify_thread(groq_client, session_, read_tools, model, context):
         nonlocal call_count
         call_count += 1
         assert session_ is session
@@ -140,7 +140,7 @@ def _run_poll_cycle_with_fakes(config, cache, summaries, bodies, classification,
 
     monkeypatch.setattr(poller, "classify_thread", fake_classify_thread)
 
-    threads = asyncio.run(poller.run_poll_cycle(config, cache, anthropic_client=None))
+    threads = asyncio.run(poller.run_poll_cycle(config, cache, groq_client=None))
     return threads, call_count, session
 
 
@@ -172,7 +172,7 @@ def test_seven_github_notifications_trigger_a_single_claude_call(monkeypatch, tm
             config, cache, summaries, bodies, classification, monkeypatch
         )
 
-    assert call_count == 1  # sept notifications -> un seul appel Claude
+    assert call_count == 1  # sept notifications -> un seul appel au modèle
     assert len(threads) == 1
     assert threads[0]["message_count"] == 7
     assert threads[0]["resume"] == "7 mises à jour sur la PR #42"

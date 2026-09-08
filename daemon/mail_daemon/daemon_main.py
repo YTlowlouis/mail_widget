@@ -5,7 +5,7 @@ import asyncio
 import logging
 import signal
 
-import anthropic
+import groq
 
 from .cache import Cache
 from .config import load_config
@@ -17,7 +17,7 @@ logger = logging.getLogger("mail_daemon")
 
 async def _run_forever() -> None:
     config = load_config()
-    anthropic_client = anthropic.AsyncAnthropic(api_key=config.anthropic_api_key)
+    groq_client = groq.AsyncGroq(api_key=config.groq_api_key)
 
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -27,7 +27,7 @@ async def _run_forever() -> None:
     with Cache(config.cache_db_path) as cache:
         while not stop_event.is_set():
             try:
-                threads = await run_poll_cycle(config, cache, anthropic_client)
+                threads = await run_poll_cycle(config, cache, groq_client)
                 write_state(config.state_path, threads)
                 logger.info("Poll terminé: %d fils écrits dans %s", len(threads), config.state_path)
             except Exception:

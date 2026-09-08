@@ -1,7 +1,7 @@
 """Actions d'écriture: appelées directement par la CLI (donc par le widget), jamais par le modèle.
 
 Chaque fonction ouvre sa propre session MCP courte, appelle un seul tool d'écriture, et se
-termine — pas de boucle d'agent, pas de decision Claude, juste un appel direct au serveur MCP.
+termine — pas de boucle d'agent, pas de decision du modèle, juste un appel direct au serveur MCP.
 """
 from __future__ import annotations
 

@@ -14,7 +14,7 @@ _DAEMON_ENV = _REPO_ROOT / "daemon" / ".env"
 
 def load_environment() -> None:
     """Charge mcp_server/.env (identifiants IMAP, réutilisés par le sous-processus mail-mcp)
-    puis daemon/.env (ANTHROPIC_API_KEY et réglages du daemon). N'écrase jamais une variable
+    puis daemon/.env (GROQ_API_KEY et réglages du daemon). N'écrase jamais une variable
     déjà présente dans l'environnement (ex: EnvironmentFile de systemd)."""
     if _MCP_SERVER_ENV.exists():
         load_dotenv(_MCP_SERVER_ENV, override=False)
@@ -24,7 +24,7 @@ def load_environment() -> None:
 
 @dataclass(frozen=True)
 class Config:
-    anthropic_api_key: str
+    groq_api_key: str
     model: str
     poll_interval_seconds: int
     poll_limit: int
@@ -38,16 +38,16 @@ class Config:
 
 def load_config() -> Config:
     load_environment()
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise RuntimeError("Variable d'environnement manquante: ANTHROPIC_API_KEY")
+        raise RuntimeError("Variable d'environnement manquante: GROQ_API_KEY")
 
     cache_dir = Path(
         os.environ.get("MAIL_WIDGET_CACHE_DIR", str(Path.home() / ".cache" / "mail-widget"))
     )
     return Config(
-        anthropic_api_key=api_key,
-        model=os.environ.get("MAIL_WIDGET_MODEL", "claude-haiku-4-5-20251001"),
+        groq_api_key=api_key,
+        model=os.environ.get("MAIL_WIDGET_MODEL", "llama-3.3-70b-versatile"),
         poll_interval_seconds=int(os.environ.get("MAIL_WIDGET_POLL_SECONDS", "180")),
         poll_limit=int(os.environ.get("MAIL_WIDGET_POLL_LIMIT", "30")),
         poll_folder=os.environ.get("MAIL_MCP_DEFAULT_FOLDER", "INBOX"),
