@@ -10,14 +10,17 @@ from mail_daemon.poller import _build_state_entries, _group_new_by_thread
 from mail_daemon.schema import EmailClassification
 
 
-def _summary(message_id, subject, date, *, unread=True, in_reply_to=None, references=None, from_="a@x.com"):
+def _summary(
+    message_id, subject, date, *, unread=True, in_reply_to=None, references=None, from_="a@x.com",
+    list_unsubscribe=None,
+):
     return {
         "message_id": message_id,
         "from": from_,
         "subject": subject,
         "date": date,
         "is_unread": unread,
-        "list_unsubscribe": None,
+        "list_unsubscribe": list_unsubscribe,
         "list_unsubscribe_post": None,
         "auth_results": {"spf": "pass", "dkim": "pass", "dmarc": "pass"},
         "in_reply_to": in_reply_to,
@@ -96,6 +99,33 @@ def test_build_state_entries_aggregates_message_count_and_unread(tmp_path):
     assert entries[0]["message_count"] == 2
     assert entries[0]["is_unread"] is True  # au moins un message non lu dans le fil
     assert entries[0]["date"] == "2026-01-02T00:00:00"  # date du message le plus récent
+
+
+def test_build_state_entries_can_unsubscribe_false_by_default(tmp_path):
+    with Cache(tmp_path / "cache.sqlite3") as cache:
+        entries = _build_state_entries([_summary("<a@x>", "s", "2026-01-01T00:00:00")], cache)
+
+    assert entries[0]["can_unsubscribe"] is False
+
+
+def test_build_state_entries_can_unsubscribe_true_when_header_present(tmp_path):
+    with Cache(tmp_path / "cache.sqlite3") as cache:
+        summaries = [_summary("<a@x>", "s", "2026-01-01T00:00:00", list_unsubscribe="<mailto:unsub@x.com>")]
+        entries = _build_state_entries(summaries, cache)
+
+    assert entries[0]["can_unsubscribe"] is True
+
+
+def test_build_state_entries_can_unsubscribe_true_if_any_message_in_thread_has_it(tmp_path):
+    with Cache(tmp_path / "cache.sqlite3") as cache:
+        summaries = [
+            _summary("<a@x>", "s", "2026-01-01T00:00:00", references="<a@x>"),
+            _summary("<b@x>", "s", "2026-01-02T00:00:00", references="<a@x>", list_unsubscribe="<mailto:u@x.com>"),
+        ]
+        entries = _build_state_entries(summaries, cache)
+
+    assert len(entries) == 1
+    assert entries[0]["can_unsubscribe"] is True
 
 
 # -- run_poll_cycle (intégration, MCP + modèle mockés) ------------------------

@@ -52,9 +52,12 @@ cat ~/.cache/mail-widget/state.json | jq
 
 Chaque entrée de `threads` : `thread_key`, `message_ids`, `subject`, `from`, `date`,
 `is_unread`, `message_count`, `resume`, `urgence` (`action`/`info`/`bruit`), `raison`,
-`otp_code` (string ou `null`). `otp_code` est extrait par regex déterministe du corps du
-message représentatif (`otp.py`), jamais deviné par le modèle — un code n'est retourné que
-s'il est trouvé à proximité d'un mot-clé lié à la vérification/l'authentification.
+`otp_code` (string ou `null`), `can_unsubscribe` (bool). `otp_code` est extrait par regex
+déterministe du corps du message représentatif (`otp.py`), jamais deviné par le modèle — un
+code n'est retourné que s'il est trouvé à proximité d'un mot-clé lié à la vérification/
+l'authentification. `can_unsubscribe` reflète simplement la présence d'un en-tête
+`List-Unsubscribe` sur au moins un message du fil (déjà lu par `mcp_server`) — permet au
+widget de n'afficher le bouton Désabonner que quand il sert vraiment à quelque chose.
 
 ## Actions (CLI, jamais appelée par le modèle)
 

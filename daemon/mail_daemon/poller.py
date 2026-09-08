@@ -97,12 +97,16 @@ def _build_state_entries(summaries: list[dict[str, Any]], cache: Cache) -> list[
                 "urgence": record.urgence if record else "info",
                 "raison": record.raison if record else "pas encore classé (retenté au prochain poll)",
                 "otp_code": record.otp_code if record else None,
+                "can_unsubscribe": False,
             }
             threads[thread_key] = entry
 
         entry["message_ids"].append(summary["message_id"])
         entry["message_count"] += 1
         entry["is_unread"] = entry["is_unread"] or summary["is_unread"]
+        # Déterministe (lu directement dans l'en-tête List-Unsubscribe côté mcp_server),
+        # jamais deviné: le bouton Désabonner du widget ne s'affiche que si ça vaut le coup.
+        entry["can_unsubscribe"] = entry["can_unsubscribe"] or bool(summary.get("list_unsubscribe"))
         if summary["date"] > entry["date"]:
             entry["date"] = summary["date"]
             entry["subject"] = summary["subject"]
