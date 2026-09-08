@@ -157,6 +157,7 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
       <box spacing={6}>
         <label label={URGENCE_LABEL[thread.urgence]} class={`badge badge-${thread.urgence}`} />
         <label label={thread.from} class="from" ellipsize={Pango.EllipsizeMode.END} hexpand xalign={0} />
+        {thread.is_unread && <label label="●" class={`unread-dot dot-${thread.urgence}`} />}
         <label label={formatDate(thread.date)} class="date" />
       </box>
 
@@ -200,9 +201,11 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
             <button onClicked={handleTrash} sensitive={busy((b) => b === null)} class="action-btn">
               <label label="Corbeille" />
             </button>
-            <button onClicked={handleUnsubscribe} sensitive={busy((b) => b === null)} class="action-btn">
-              <label label="Désabonner" />
-            </button>
+            {thread.can_unsubscribe && (
+              <button onClicked={handleUnsubscribe} sensitive={busy((b) => b === null)} class="action-btn">
+                <label label="Désabonner" />
+              </button>
+            )}
           </box>
 
           <revealer revealChild={composing} transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}>

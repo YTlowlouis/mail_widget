@@ -78,9 +78,12 @@ ags run widget
 - **Copier le code** n'apparaît que si `otp_code` est non-null dans `state.json` — extrait
   par regex déterministe côté daemon (`otp.py`), jamais deviné par le modèle ni par le
   widget.
-- **Désabonner** : si le mail ne supporte que le lien classique (pas de RFC 8058 one-click),
-  le lien est copié dans le presse-papiers plutôt qu'ouvert automatiquement — cohérent avec
-  le fait que `mcp_server.unsubscribe` ne l'ouvre jamais lui-même.
+- **Désabonner** n'apparaît que si `can_unsubscribe` est vrai dans `state.json` (présence
+  d'un en-tête `List-Unsubscribe` sur au moins un message du fil, déterministe, lu par
+  `mcp_server`) — pas de bouton mort sur un mail qui ne propose rien. Si le mail ne supporte
+  que le lien classique (pas de RFC 8058 one-click), le lien est copié dans le presse-papiers
+  plutôt qu'ouvert automatiquement — cohérent avec le fait que `mcp_server.unsubscribe` ne
+  l'ouvre jamais lui-même.
 - **Répondre** ouvre une petite zone de texte et enregistre un **brouillon** dans le dossier
   Brouillons (`mail-widget-ctl reply`) — n'envoie jamais rien automatiquement, conformément à
   la contrainte non négociable du projet ("aucun envoi de mail à aucune phase"). C'est à toi
@@ -95,10 +98,12 @@ ags run widget
   (retrait optimiste, `dismissThread`) sans attendre que le daemon confirme via un nouveau
   `state.json` — sinon il faudrait patienter jusqu'à 3 minutes.
 
-## Non testé dans cette session
+## Design
 
-Je n'ai pas d'environnement GTK4/Wayland/Hyprland disponible ici pour lancer et voir ce
-widget réellement s'afficher. Le code est écrit contre l'API réelle d'AGS 3.1.2/Astal/Gnim
-(vérifiée en récupérant les sources depuis GitHub, pas de mémoire), mais **c'est à toi de le
-lancer et de me dire ce qui ne va pas** — erreurs de compilation TypeScript, styles cassés,
-comportement des actions, etc.
+La palette et la mise en page suivent un mockup fait avec Claude Design (`design-prompt.md`
+a servi de brief). J'ai pu rendre l'export du mockup dans un navigateur headless et en
+extraire les couleurs exactes, mais **je n'ai toujours pas d'environnement GTK4/Wayland/
+Hyprland pour voir le widget réel s'afficher** — le code est écrit contre l'API réelle d'AGS
+3.1.2/Astal/Gnim (sources récupérées depuis GitHub, pas de mémoire) et vérifié syntaxiquement
+(esbuild) + la feuille de style compilée (dart-sass), mais **c'est à toi de lancer et de me
+dire ce qui ne colle pas** avec le mockup — espacements, tailles, comportement des actions.
