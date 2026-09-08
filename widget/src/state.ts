@@ -4,7 +4,7 @@
 import Gio from "gi://Gio?version=2.0"
 import GLib from "gi://GLib?version=2.0"
 import { readFileAsync, monitorFile } from "ags/file"
-import { createState } from "ags"
+import { createComputed, createState } from "ags"
 
 export type Urgence = "action" | "info" | "bruit"
 
@@ -34,6 +34,21 @@ const STATE_PATH =
 const [threads, setThreads] = createState<Thread[]>([])
 const [lastError, setLastError] = createState<string | null>(null)
 const [generatedAt, setGeneratedAt] = createState<string | null>(null)
+
+// Fils masqués côté widget après une action (ex: corbeille, une fois la fenêtre d'annulation
+// passée) sans attendre que le daemon écrive un nouveau state.json qui les confirme partis
+// (jusqu'à 3 minutes sinon). Overlay purement local: remis à zéro à chaque lecture réussie
+// de state.json, qui redevient alors la seule source de vérité.
+const [dismissedThreadKeys, setDismissedThreadKeys] = createState<ReadonlySet<string>>(new Set())
+
+export function dismissThread(threadKey: string): void {
+  setDismissedThreadKeys((current) => new Set(current).add(threadKey))
+}
+
+const visibleThreads = createComputed(() => {
+  const dismissed = dismissedThreadKeys()
+  return threads().filter((t) => !dismissed.has(t.thread_key))
+})
 
 function isThread(value: unknown): value is Thread {
   if (typeof value !== "object" || value === null) return false
@@ -110,6 +125,10 @@ async function reload() {
   setThreads(valid)
   setGeneratedAt((data as StateFile).generated_at ?? null)
   setLastError(null)
+  // state.json est de nouveau la source de vérité: un fil masqué localement qui n'y figure
+  // plus était bien parti (plus besoin du masquage), et un fil qui y est encore (ou y
+  // réapparaît, ex: nouveau message dans un fil déjà "corbeille") ne doit pas rester caché.
+  setDismissedThreadKeys(new Set())
 }
 
 monitorFile(STATE_PATH, () => {
@@ -118,4 +137,4 @@ monitorFile(STATE_PATH, () => {
 
 reload()
 
-export { threads, lastError, generatedAt }
+export { visibleThreads as threads, lastError, generatedAt }

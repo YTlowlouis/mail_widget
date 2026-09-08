@@ -2,7 +2,7 @@ import Pango from "gi://Pango"
 import GLib from "gi://GLib?version=2.0"
 import { Gtk } from "ags/gtk4"
 import { createState } from "ags"
-import type { Thread } from "./state"
+import { dismissThread, type Thread } from "./state"
 import * as ctl from "./ctl"
 import { copyToClipboard } from "./clipboard"
 
@@ -29,6 +29,9 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
   const [busy, setBusy] = createState<string | null>(null)
   const [trashed, setTrashed] = createState(false)
   const [status, setStatus] = createState<string | null>(null)
+  // Pas un state réactif: juste l'id du timer d'annulation en cours, pour pouvoir
+  // l'annuler proprement si "Annuler" est cliqué avant son expiration.
+  let undoTimeoutId: number | null = null
 
   function showStatus(message: string) {
     setStatus(message)
@@ -42,7 +45,9 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
     setBusy("archive")
     try {
       await ctl.archive(targetId)
-      showStatus("Archivé")
+      // Pas de fenêtre d'annulation ici (ce n'est pas une suppression) — retrait immédiat,
+      // sans attendre le prochain cycle du daemon pour confirmer.
+      dismissThread(thread.thread_key)
     } catch (error) {
       showStatus(String(error))
     } finally {
@@ -55,8 +60,12 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
     try {
       await ctl.trash(targetId)
       setTrashed(true)
-      GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, UNDO_WINDOW_SECONDS, () => {
-        setTrashed(false)
+      // Après la fenêtre d'annulation, le fil disparaît vraiment de la liste (via
+      // dismissThread) plutôt que de repasser en mode normal comme si de rien n'était —
+      // sans attendre le prochain cycle du daemon (jusqu'à 3 minutes) pour confirmer.
+      undoTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, UNDO_WINDOW_SECONDS, () => {
+        undoTimeoutId = null
+        dismissThread(thread.thread_key)
         return GLib.SOURCE_REMOVE
       })
     } catch (error) {
@@ -67,6 +76,10 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
   }
 
   async function handleRestore() {
+    if (undoTimeoutId !== null) {
+      GLib.source_remove(undoTimeoutId)
+      undoTimeoutId = null
+    }
     setBusy("restore")
     try {
       await ctl.restore(targetId)
