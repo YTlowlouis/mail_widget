@@ -20,6 +20,7 @@ export interface Thread {
   urgence: Urgence
   raison: string
   otp_code: string | null
+  can_unsubscribe: boolean
 }
 
 interface StateFile {
@@ -45,6 +46,12 @@ export function dismissThread(threadKey: string): void {
   setDismissedThreadKeys((current) => new Set(current).add(threadKey))
 }
 
+// Ferme manuellement le bandeau d'erreur (bouton "×"). Une nouvelle lecture de state.json
+// (monitorFile) le rétablira si le problème persiste réellement — voir reload() ci-dessous.
+export function dismissError(): void {
+  setLastError(null)
+}
+
 const visibleThreads = createComputed(() => {
   const dismissed = dismissedThreadKeys()
   return threads().filter((t) => !dismissed.has(t.thread_key))
@@ -64,10 +71,10 @@ function isThread(value: unknown): value is Thread {
     typeof t.resume === "string" &&
     (t.urgence === "action" || t.urgence === "info" || t.urgence === "bruit") &&
     typeof t.raison === "string" &&
-    // Champ optionnel: un state.json écrit par un daemon plus ancien (avant l'ajout de
-    // l'extraction OTP) n'a pas cette clé du tout. Absent === pas de code, jamais une raison
-    // de rejeter tout le fil.
-    (t.otp_code === undefined || t.otp_code === null || typeof t.otp_code === "string")
+    // Champs optionnels: un state.json écrit par un daemon plus ancien n'a pas ces clés du
+    // tout. Absent === valeur par défaut, jamais une raison de rejeter tout le fil.
+    (t.otp_code === undefined || t.otp_code === null || typeof t.otp_code === "string") &&
+    (t.can_unsubscribe === undefined || typeof t.can_unsubscribe === "boolean")
   )
 }
 
