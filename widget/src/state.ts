@@ -1,6 +1,7 @@
 // Lit et surveille ~/.cache/mail-widget/state.json écrit par le daemon.
 // Ce fichier n'appelle jamais l'API du modèle ni IMAP: seule lecture d'un fichier local,
 // c'est ce qui garantit que le widget reste instantané et n'attend jamais le réseau.
+import Gio from "gi://Gio?version=2.0"
 import GLib from "gi://GLib?version=2.0"
 import { readFileAsync, monitorFile } from "ags/file"
 import { createState } from "ags"
@@ -53,13 +54,26 @@ function isThread(value: unknown): value is Thread {
 }
 
 async function reload() {
+  console.log(`[mail-widget] lecture de ${STATE_PATH}`)
+
   let text: string
   try {
     text = await readFileAsync(STATE_PATH)
-  } catch {
-    // Pas d'erreur affichée: normal tant que le daemon n'a pas encore tourné une fois.
+  } catch (error) {
+    // Gio.IOErrorEnum.NOT_FOUND (fichier pas encore créé) est le seul cas qu'on n'affiche pas
+    // comme une erreur: c'est l'état normal avant que le daemon ait tourné une première fois.
+    const isNotFound =
+      error instanceof GLib.Error && error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND)
+    if (isNotFound) {
+      console.log("[mail-widget] state.json n'existe pas encore (le daemon n'a pas encore tourné ?)")
+      return
+    }
+    console.error("[mail-widget] lecture de state.json échouée:", error)
+    setLastError(`Lecture de state.json impossible: ${error}`)
     return
   }
+
+  console.log(`[mail-widget] state.json lu (${text.length} caractères)`)
 
   let data: unknown
   try {
@@ -68,18 +82,28 @@ async function reload() {
     // Peut arriver si le fichier est lu pendant une réécriture malgré l'os.replace atomique
     // côté daemon (fenêtre de course très courte) — on ignore, le prochain événement du
     // moniteur ou le prochain cycle de poll du daemon redéclenchera une lecture propre.
+    console.error("[mail-widget] JSON.parse a échoué:", error)
     setLastError(`state.json illisible: ${error}`)
     return
   }
 
   if (typeof data !== "object" || data === null || !Array.isArray((data as StateFile).threads)) {
+    console.error("[mail-widget] format inattendu, contenu brut:", data)
     setLastError("state.json a un format inattendu")
     return
   }
 
   // Validation stricte, comme la sortie du modèle côté daemon: une entrée mal formée est
   // ignorée plutôt qu'affichée à moitié ou interprétée au hasard.
-  const valid = (data as StateFile).threads.filter(isThread)
+  const rawThreads = (data as StateFile).threads
+  const valid = rawThreads.filter(isThread)
+  if (valid.length !== rawThreads.length) {
+    console.error(
+      `[mail-widget] ${rawThreads.length - valid.length} entrée(s) rejetée(s) par la validation stricte`,
+      rawThreads.filter((t) => !isThread(t)),
+    )
+  }
+  console.log(`[mail-widget] ${valid.length} fil(s) chargé(s)`)
   setThreads(valid)
   setGeneratedAt((data as StateFile).generated_at ?? null)
   setLastError(null)
