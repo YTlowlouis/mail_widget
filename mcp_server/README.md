@@ -24,7 +24,8 @@ Les identifiants ne sont jamais lus ailleurs que dans l'environnement (`.env` lo
 
 Lecture (destinés à être passés au modèle par le daemon) :
 
-- `list_recent(folder="INBOX", limit=20, since=None)`
+- `list_recent(folder="INBOX", limit=20, since=None)` — inclut aussi `in_reply_to`/`references`
+  (bruts, non parsés) pour permettre au daemon de regrouper les fils de discussion
 - `get_email(message_id)`
 - `search_emails(query, limit=20)`
 

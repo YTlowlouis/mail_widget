@@ -37,6 +37,22 @@ def test_email_summary_missing_headers_default_to_none_and_unknown():
     assert summary["list_unsubscribe"] is None
     assert summary["list_unsubscribe_post"] is None
     assert summary["auth_results"] == {"spf": "unknown", "dkim": "unknown", "dmarc": "unknown"}
+    assert summary["in_reply_to"] is None
+    assert summary["references"] is None
+
+
+def test_email_summary_exposes_thread_headers_for_grouping():
+    msg = FakeMessage(
+        "<reply@example.com>",
+        "7",
+        headers={
+            "in-reply-to": ("<parent@example.com>",),
+            "references": ("<root@example.com> <parent@example.com>",),
+        },
+    )
+    summary = email_summary(msg)
+    assert summary["in_reply_to"] == "<parent@example.com>"
+    assert summary["references"] == "<root@example.com> <parent@example.com>"
 
 
 def test_email_body_prefers_plain_text():

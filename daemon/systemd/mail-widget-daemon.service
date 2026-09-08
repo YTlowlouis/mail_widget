@@ -1,0 +1,15 @@
+[Unit]
+Description=Mail widget daemon (résumé et tri des mails via Claude)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adapte ces deux chemins à ton installation avant `systemctl --user enable`.
+WorkingDirectory=%h/mail_widget/daemon
+ExecStart=%h/mail_widget/daemon/.venv/bin/mail-widget-daemon
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -19,6 +19,8 @@ def email_summary(msg: MailMessage) -> dict[str, Any]:
     auth_header_values = list(msg.headers.get("authentication-results", ()))
     list_unsubscribe = msg.headers.get("list-unsubscribe", (None,))[0]
     list_unsubscribe_post = msg.headers.get("list-unsubscribe-post", (None,))[0]
+    in_reply_to = msg.headers.get("in-reply-to", (None,))[0]
+    references = msg.headers.get("references", (None,))[0]
     return {
         "message_id": message_id_of(msg),
         "from": msg.from_,
@@ -28,6 +30,8 @@ def email_summary(msg: MailMessage) -> dict[str, Any]:
         "list_unsubscribe": list_unsubscribe,
         "list_unsubscribe_post": list_unsubscribe_post,
         "auth_results": parse_auth_results(auth_header_values),
+        "in_reply_to": in_reply_to,
+        "references": references,
     }
 
 
