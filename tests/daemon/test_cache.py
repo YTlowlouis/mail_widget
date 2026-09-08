@@ -21,6 +21,13 @@ def test_upsert_thread_then_get(tmp_path):
         assert record.resume == "Résumé"
         assert record.urgence == "action"
         assert record.raison == "besoin d'une réponse"
+        assert record.otp_code is None
+
+
+def test_upsert_thread_stores_otp_code(tmp_path):
+    with Cache(tmp_path / "cache.sqlite3") as cache:
+        cache.upsert_thread("<a@x>", "résumé", "action", "code de connexion", otp_code="482913")
+        assert cache.get_thread("<a@x>").otp_code == "482913"
 
 
 def test_upsert_thread_overwrites_previous_classification(tmp_path):

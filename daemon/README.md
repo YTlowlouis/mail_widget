@@ -51,7 +51,10 @@ cat ~/.cache/mail-widget/state.json | jq
 ```
 
 Chaque entrée de `threads` : `thread_key`, `message_ids`, `subject`, `from`, `date`,
-`is_unread`, `message_count`, `resume`, `urgence` (`action`/`info`/`bruit`), `raison`.
+`is_unread`, `message_count`, `resume`, `urgence` (`action`/`info`/`bruit`), `raison`,
+`otp_code` (string ou `null`). `otp_code` est extrait par regex déterministe du corps du
+message représentatif (`otp.py`), jamais deviné par le modèle — un code n'est retourné que
+s'il est trouvé à proximité d'un mot-clé lié à la vérification/l'authentification.
 
 ## Actions (CLI, jamais appelée par le modèle)
 

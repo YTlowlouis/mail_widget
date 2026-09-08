@@ -198,6 +198,40 @@ def test_already_seen_message_is_never_resent_to_claude(monkeypatch, tmp_path):
     assert threads[0]["resume"] == "déjà résumé"
 
 
+def test_otp_code_extracted_from_body_flows_into_state_entry(monkeypatch, tmp_path):
+    config = _config(tmp_path)
+    summaries = [_summary("<a@x>", "Sujet", "2026-01-01T00:00:00")]
+    bodies = {
+        "<a@x>": {
+            "message_id": "<a@x>", "from": "a@x.com", "subject": "Sujet", "date": "2026-01-01",
+            "body_text": "Votre code de vérification est : 482913", "truncated": False,
+        }
+    }
+    classification = EmailClassification(resume="r", urgence="action", raison="code de connexion")
+
+    with Cache(config.cache_db_path) as cache:
+        threads, _, _ = _run_poll_cycle_with_fakes(config, cache, summaries, bodies, classification, monkeypatch)
+
+    assert threads[0]["otp_code"] == "482913"
+
+
+def test_otp_code_is_none_when_absent_from_body(monkeypatch, tmp_path):
+    config = _config(tmp_path)
+    summaries = [_summary("<a@x>", "Sujet", "2026-01-01T00:00:00")]
+    bodies = {
+        "<a@x>": {
+            "message_id": "<a@x>", "from": "a@x.com", "subject": "Sujet", "date": "2026-01-01",
+            "body_text": "Pas de code ici.", "truncated": False,
+        }
+    }
+    classification = EmailClassification(resume="r", urgence="info", raison="rien de spécial")
+
+    with Cache(config.cache_db_path) as cache:
+        threads, _, _ = _run_poll_cycle_with_fakes(config, cache, summaries, bodies, classification, monkeypatch)
+
+    assert threads[0]["otp_code"] is None
+
+
 def test_invalid_classification_leaves_thread_unmarked_for_retry(monkeypatch, tmp_path):
     config = _config(tmp_path)
     with Cache(config.cache_db_path) as cache:

@@ -11,6 +11,7 @@ from . import mcp_tools
 from .cache import Cache
 from .classifier import build_email_context, classify_thread
 from .config import Config
+from .otp import extract_otp_code
 from .threading_utils import thread_key_for
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,8 @@ async def _process_new_thread(
         logger.info("Fil %s non classé ce cycle, retenté au prochain poll", thread_key)
         return
 
-    cache.upsert_thread(thread_key, classification.resume, classification.urgence, classification.raison)
+    otp_code = extract_otp_code(representative_body["body_text"])
+    cache.upsert_thread(thread_key, classification.resume, classification.urgence, classification.raison, otp_code)
     cache.mark_messages_seen([s["message_id"] for s in group], thread_key)
 
 
@@ -94,6 +96,7 @@ def _build_state_entries(summaries: list[dict[str, Any]], cache: Cache) -> list[
                 "resume": record.resume if record else summary["subject"],
                 "urgence": record.urgence if record else "info",
                 "raison": record.raison if record else "pas encore classé (retenté au prochain poll)",
+                "otp_code": record.otp_code if record else None,
             }
             threads[thread_key] = entry
 

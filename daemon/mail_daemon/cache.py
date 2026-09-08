@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS threads (
     resume TEXT NOT NULL,
     urgence TEXT NOT NULL,
     raison TEXT NOT NULL,
+    otp_code TEXT,
     processed_at TEXT NOT NULL
 );
 """
@@ -29,6 +30,7 @@ class ThreadRecord(NamedTuple):
     resume: str
     urgence: str
     raison: str
+    otp_code: Optional[str]
     processed_at: str
 
 
@@ -77,24 +79,27 @@ class Cache:
         )
         self._conn.commit()
 
-    def upsert_thread(self, thread_key: str, resume: str, urgence: str, raison: str) -> None:
+    def upsert_thread(
+        self, thread_key: str, resume: str, urgence: str, raison: str, otp_code: Optional[str] = None
+    ) -> None:
         self._conn.execute(
             """
-            INSERT INTO threads (thread_key, resume, urgence, raison, processed_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO threads (thread_key, resume, urgence, raison, otp_code, processed_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(thread_key) DO UPDATE SET
                 resume = excluded.resume,
                 urgence = excluded.urgence,
                 raison = excluded.raison,
+                otp_code = excluded.otp_code,
                 processed_at = excluded.processed_at
             """,
-            (thread_key, resume, urgence, raison, _now()),
+            (thread_key, resume, urgence, raison, otp_code, _now()),
         )
         self._conn.commit()
 
     def get_thread(self, thread_key: str) -> Optional[ThreadRecord]:
         row = self._conn.execute(
-            "SELECT thread_key, resume, urgence, raison, processed_at FROM threads WHERE thread_key = ?",
+            "SELECT thread_key, resume, urgence, raison, otp_code, processed_at FROM threads WHERE thread_key = ?",
             (thread_key,),
         ).fetchone()
         return ThreadRecord(**dict(row)) if row else None
