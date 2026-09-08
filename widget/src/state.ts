@@ -49,7 +49,10 @@ function isThread(value: unknown): value is Thread {
     typeof t.resume === "string" &&
     (t.urgence === "action" || t.urgence === "info" || t.urgence === "bruit") &&
     typeof t.raison === "string" &&
-    (t.otp_code === null || typeof t.otp_code === "string")
+    // Champ optionnel: un state.json écrit par un daemon plus ancien (avant l'ajout de
+    // l'extraction OTP) n'a pas cette clé du tout. Absent === pas de code, jamais une raison
+    // de rejeter tout le fil.
+    (t.otp_code === undefined || t.otp_code === null || typeof t.otp_code === "string")
   )
 }
 
