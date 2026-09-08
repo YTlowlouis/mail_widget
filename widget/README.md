@@ -46,7 +46,10 @@ ags run widget
 `ags run widget` après chaque modification (pas de hot-reload dans cette configuration
 minimale).
 
-Si `mail-widget-ctl` n'est pas dans le PATH du widget (venvs séparés), pointe dessus :
+`mail-widget-ctl` est trouvé automatiquement à `daemon/.venv/bin/mail-widget-ctl` (relatif au
+dossier courant) si tu lances `ags run widget` depuis la racine du dépôt — c'est le cas normal,
+rien à faire. Si ta config est différente (venv ailleurs, lancé depuis un autre dossier),
+pointe dessus explicitement :
 
 ```bash
 export MAIL_WIDGET_CTL=/chemin/vers/mail_widget/daemon/.venv/bin/mail-widget-ctl

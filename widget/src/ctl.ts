@@ -6,8 +6,22 @@ import { run } from "./proc"
 
 // Si mcp_server/daemon/widget ne partagent pas le même venv, mail-widget-ctl peut ne pas
 // être dans le PATH du widget: MAIL_WIDGET_CTL permet de pointer vers le binaire exact,
-// comme MAIL_MCP_COMMAND côté daemon.
-const CTL_COMMAND = GLib.getenv("MAIL_WIDGET_CTL") ?? "mail-widget-ctl"
+// comme MAIL_MCP_COMMAND côté daemon. À défaut, on devine le chemin habituel
+// (daemon/.venv/bin/mail-widget-ctl) relatif au dossier courant: `ags run widget` est
+// documenté pour être lancé depuis la racine du dépôt, donc ça marche sans rien exporter
+// dans la grande majorité des cas — MAIL_WIDGET_CTL reste là pour les configurations non
+// standard (venv ailleurs, symlink, etc).
+function resolveCtlCommand(): string {
+  const fromEnv = GLib.getenv("MAIL_WIDGET_CTL")
+  if (fromEnv) return fromEnv
+
+  const guess = GLib.build_filenamev([GLib.get_current_dir(), "daemon", ".venv", "bin", "mail-widget-ctl"])
+  if (GLib.file_test(guess, GLib.FileTest.EXISTS)) return guess
+
+  return "mail-widget-ctl"
+}
+
+const CTL_COMMAND = resolveCtlCommand()
 
 export interface CtlResult {
   status: string
@@ -27,8 +41,9 @@ async function runCtl(args: string[]): Promise<CtlResult> {
     // pourquoi, donc on donne le diagnostic exact plutôt que de la laisser remonter telle quelle.
     throw new Error(
       `Impossible de lancer "${CTL_COMMAND}" (${error}). ` +
-        `Vérifie qu'il existe et qu'il est exécutable, ou exporte MAIL_WIDGET_CTL vers son ` +
-        `chemin absolu (ex: daemon/.venv/bin/mail-widget-ctl) dans le terminal qui lance le widget.`,
+        `Vérifie qu'il existe et qu'il est exécutable (le widget essaie automatiquement ` +
+        `<dossier_courant>/daemon/.venv/bin/mail-widget-ctl s'il est lancé depuis la racine ` +
+        `du dépôt), ou exporte MAIL_WIDGET_CTL vers son chemin absolu avant "ags run widget".`,
     )
   }
   // mail-widget-ctl écrit toujours exactement une ligne de JSON sur stdout, succès ou
