@@ -17,6 +17,8 @@ logger = logging.getLogger("mail_daemon")
 
 async def _run_forever() -> None:
     config = load_config()
+    if not config.groq_api_key:
+        raise RuntimeError("Variable d'environnement manquante: GROQ_API_KEY")
     groq_client = groq.AsyncGroq(api_key=config.groq_api_key)
 
     stop_event = asyncio.Event()

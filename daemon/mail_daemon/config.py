@@ -38,10 +38,14 @@ class Config:
 
 
 def load_config() -> Config:
+    """Charge la config partagée par le daemon et la CLI (mail-widget-ctl).
+
+    GROQ_API_KEY n'est PAS exigée ici: la CLI (trash/archive/restore/unsubscribe) n'appelle
+    jamais le modèle, ce serait une dépendance artificielle. C'est mail-widget-daemon qui
+    vérifie sa présence avant de construire le client Groq.
+    """
     load_environment()
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        raise RuntimeError("Variable d'environnement manquante: GROQ_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY", "")
 
     cache_dir = Path(
         os.environ.get("MAIL_WIDGET_CACHE_DIR", str(Path.home() / ".cache" / "mail-widget"))
