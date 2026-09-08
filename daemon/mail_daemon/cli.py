@@ -49,11 +49,13 @@ def main(argv: list[str] | None = None) -> None:
     try:
         result = asyncio.run(_dispatch(args))
     except Exception as exc:  # noqa: BLE001 - on veut toujours un JSON en sortie, jamais une trace brute
-        print(json.dumps({"status": "error", "detail": str(exc)}), file=sys.stderr)
-        sys.exit(1)
+        result = {"status": "error", "detail": str(exc)}
 
+    # Toujours une seule ligne de JSON sur stdout, succès ou échec: le widget (ou tout
+    # autre appelant programmatique) n'a qu'un seul flux à lire, jamais besoin de choisir
+    # entre stdout et stderr selon le cas.
     print(json.dumps(result, ensure_ascii=False))
-    if result.get("status") == "error":
+    if result.get("status") != "ok":
         sys.exit(1)
 
 
