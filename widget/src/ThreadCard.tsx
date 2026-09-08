@@ -29,9 +29,12 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
   const [busy, setBusy] = createState<string | null>(null)
   const [trashed, setTrashed] = createState(false)
   const [status, setStatus] = createState<string | null>(null)
+  const [composing, setComposing] = createState(false)
   // Pas un state réactif: juste l'id du timer d'annulation en cours, pour pouvoir
   // l'annuler proprement si "Annuler" est cliqué avant son expiration.
   let undoTimeoutId: number | null = null
+  // Idem: référence à la zone de texte de la réponse, lue au clic sur "Enregistrer".
+  let replyBuffer: Gtk.TextBuffer | null = null
 
   function showStatus(message: string) {
     setStatus(message)
@@ -123,6 +126,32 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
     }
   }
 
+  function handleCancelReply() {
+    replyBuffer?.set_text("", -1)
+    setComposing(false)
+  }
+
+  async function handleSaveDraft() {
+    const text = replyBuffer
+      ? replyBuffer.get_text(replyBuffer.get_start_iter(), replyBuffer.get_end_iter(), false)
+      : ""
+    if (!text.trim()) return
+
+    setBusy("reply")
+    try {
+      // Enregistre un brouillon dans le dossier Brouillons — n'envoie jamais rien
+      // (voir mcp_server.save_draft_reply). L'utilisateur valide et envoie lui-même.
+      await ctl.reply(targetId, text)
+      replyBuffer?.set_text("", -1)
+      setComposing(false)
+      showStatus("Brouillon enregistré")
+    } catch (error) {
+      showStatus(String(error))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <box orientation={Gtk.Orientation.VERTICAL} class={`thread-card urgence-${thread.urgence}`} spacing={4}>
       <box spacing={6}>
@@ -151,21 +180,57 @@ export default function ThreadCard({ thread }: { thread: Thread }) {
       </revealer>
 
       <revealer revealChild={trashed((t) => !t)} transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}>
-        <box spacing={4} class="actions">
-          {thread.otp_code && (
-            <button onClicked={handleCopyOtp} sensitive={busy((b) => b === null)} class="action-btn otp-btn">
-              <label label={`Copier ${thread.otp_code}`} />
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
+          <box spacing={4} class="actions">
+            {thread.otp_code && (
+              <button onClicked={handleCopyOtp} sensitive={busy((b) => b === null)} class="action-btn otp-btn">
+                <label label={`Copier ${thread.otp_code}`} />
+              </button>
+            )}
+            <button
+              onClicked={() => setComposing((c) => !c)}
+              sensitive={busy((b) => b === null)}
+              class="action-btn"
+            >
+              <label label="Répondre" />
             </button>
-          )}
-          <button onClicked={handleArchive} sensitive={busy((b) => b === null)} class="action-btn">
-            <label label="Archiver" />
-          </button>
-          <button onClicked={handleTrash} sensitive={busy((b) => b === null)} class="action-btn">
-            <label label="Corbeille" />
-          </button>
-          <button onClicked={handleUnsubscribe} sensitive={busy((b) => b === null)} class="action-btn">
-            <label label="Désabonner" />
-          </button>
+            <button onClicked={handleArchive} sensitive={busy((b) => b === null)} class="action-btn">
+              <label label="Archiver" />
+            </button>
+            <button onClicked={handleTrash} sensitive={busy((b) => b === null)} class="action-btn">
+              <label label="Corbeille" />
+            </button>
+            <button onClicked={handleUnsubscribe} sensitive={busy((b) => b === null)} class="action-btn">
+              <label label="Désabonner" />
+            </button>
+          </box>
+
+          <revealer revealChild={composing} transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}>
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={4} class="reply-box">
+              <label label="Brouillon (jamais envoyé automatiquement) :" xalign={0} class="reply-hint" />
+              <scrolledwindow heightRequest={90} class="reply-textview-scroll">
+                <Gtk.TextView
+                  wrapMode={Gtk.WrapMode.WORD_CHAR}
+                  $={(self: Gtk.TextView) => {
+                    replyBuffer = self.get_buffer()
+                  }}
+                />
+              </scrolledwindow>
+              <box spacing={4}>
+                <button
+                  onClicked={handleSaveDraft}
+                  sensitive={busy((b) => b === null)}
+                  hexpand
+                  class="action-btn reply-save-btn"
+                >
+                  <label label="Enregistrer le brouillon" />
+                </button>
+                <button onClicked={handleCancelReply} sensitive={busy((b) => b === null)} class="action-btn">
+                  <label label="Annuler" />
+                </button>
+              </box>
+            </box>
+          </revealer>
         </box>
       </revealer>
     </box>

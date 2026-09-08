@@ -42,3 +42,8 @@ export const trash = (messageId: string) => runCtl(["trash", messageId])
 export const archive = (messageId: string) => runCtl(["archive", messageId])
 export const restore = (messageId: string) => runCtl(["restore", messageId])
 export const unsubscribe = (messageId: string) => runCtl(["unsubscribe", messageId])
+// Enregistre un brouillon de réponse (jamais envoyée, voir mcp_server.save_draft_reply).
+export const reply = (messageId: string, body: string) => runCtl(["reply", messageId, body])
+// Force un cycle de poll immédiat côté daemon. Peut prendre plusieurs secondes (voire
+// dizaines de secondes s'il y a beaucoup de nouveaux mails) — pas de timeout imposé ici.
+export const reload = () => runCtl(["reload"])

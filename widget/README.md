@@ -81,6 +81,19 @@ ags run widget
 - **Désabonner** : si le mail ne supporte que le lien classique (pas de RFC 8058 one-click),
   le lien est copié dans le presse-papiers plutôt qu'ouvert automatiquement — cohérent avec
   le fait que `mcp_server.unsubscribe` ne l'ouvre jamais lui-même.
+- **Répondre** ouvre une petite zone de texte et enregistre un **brouillon** dans le dossier
+  Brouillons (`mail-widget-ctl reply`) — n'envoie jamais rien automatiquement, conformément à
+  la contrainte non négociable du projet ("aucun envoi de mail à aucune phase"). C'est à toi
+  d'ouvrir Gmail pour relire et envoyer.
+- **Recharger** (bouton dans l'en-tête) force un cycle de poll immédiat côté daemon
+  (`mail-widget-ctl reload`) au lieu d'attendre jusqu'à 3 minutes. Peut prendre plusieurs
+  secondes s'il y a beaucoup de nouveaux mails — le bouton se désactive et affiche
+  "Chargement…" pendant l'opération. N'a pas besoin que `GROQ_API_KEY` soit exportée dans le
+  shell du widget: elle est lue directement depuis `daemon/.env` par la CLI, comme pour le
+  daemon lui-même.
+- Après **Corbeille** ou **Archiver**, le fil disparaît immédiatement de la liste côté widget
+  (retrait optimiste, `dismissThread`) sans attendre que le daemon confirme via un nouveau
+  `state.json` — sinon il faudrait patienter jusqu'à 3 minutes.
 
 ## Non testé dans cette session
 

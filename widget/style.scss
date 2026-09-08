@@ -27,6 +27,11 @@ window.MailWidget {
   }
 }
 
+.reload-btn {
+  font-size: 0.8em;
+  padding: 2px 8px;
+}
+
 .error-banner {
   background-color: rgba(243, 139, 168, 0.15);
   color: $action;
@@ -119,6 +124,29 @@ window.MailWidget {
 }
 
 .otp-btn {
+  color: $info;
+  font-weight: bold;
+}
+
+.reply-box {
+  background-color: rgba(137, 180, 250, 0.1);
+  padding: 6px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.reply-hint {
+  color: $fg-dim;
+  font-size: 0.8em;
+}
+
+.reply-textview-scroll {
+  background-color: $bg;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.reply-save-btn {
   color: $info;
   font-weight: bold;
 }
