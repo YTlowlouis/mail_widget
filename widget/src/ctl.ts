@@ -18,7 +18,19 @@ export interface CtlResult {
 }
 
 async function runCtl(args: string[]): Promise<CtlResult> {
-  const { stdout, stderr, exitCode } = await run([CTL_COMMAND, ...args])
+  let stdout: string, stderr: string, exitCode: number
+  try {
+    ;({ stdout, stderr, exitCode } = await run([CTL_COMMAND, ...args]))
+  } catch (error) {
+    // Le process n'a même pas pu être lancé (binaire introuvable/pas exécutable) — l'erreur
+    // GLib brute ("g_spawn_sync failed", "Failed to execute child process"...) ne dit pas
+    // pourquoi, donc on donne le diagnostic exact plutôt que de la laisser remonter telle quelle.
+    throw new Error(
+      `Impossible de lancer "${CTL_COMMAND}" (${error}). ` +
+        `Vérifie qu'il existe et qu'il est exécutable, ou exporte MAIL_WIDGET_CTL vers son ` +
+        `chemin absolu (ex: daemon/.venv/bin/mail-widget-ctl) dans le terminal qui lance le widget.`,
+    )
+  }
   // mail-widget-ctl écrit toujours exactement une ligne de JSON sur stdout, succès ou
   // échec (voir cli.py). stderr n'est utilisé qu'en dernier recours, si la commande n'a
   // pas pu être lancée du tout (ex: binaire introuvable).
