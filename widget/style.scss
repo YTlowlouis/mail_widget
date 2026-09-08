@@ -1,10 +1,14 @@
-$bg: #1e1e2e;
-$bg-card: #2a2a3c;
-$fg: #cdd6f4;
-$fg-dim: #9399b2;
-$action: #f38ba8;
-$info: #89b4fa;
-$bruit: #6c7086;
+// Palette calibrée sur le design Claude Design fourni par l'utilisateur (valeurs exactes
+// lues dans le SVG source du fichier exporté, pas devinées à l'œil).
+$bg: #101116; // fond de l'écran, derrière la fenêtre
+$panel-bg: #191b22; // fond de la fenêtre elle-même
+$panel-border: #2a2d38;
+$bg-card: #21242d; // fond d'une carte de fil
+$fg: #ececf1;
+$fg-dim: #868b98;
+$action: #ff5c72;
+$info: #5b9dff;
+$bruit: #868b98;
 $border-radius: 10px;
 
 window.MailWidget {
@@ -12,7 +16,8 @@ window.MailWidget {
 }
 
 .root {
-  background-color: $bg;
+  background-color: $panel-bg;
+  border: 1px solid $panel-border;
   color: $fg;
   padding: 10px;
   border-radius: $border-radius;
@@ -23,21 +28,48 @@ window.MailWidget {
 
   .title {
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1.15em;
+  }
+
+  .thread-count {
+    color: $fg-dim;
+    font-size: 0.85em;
+    margin-left: 4px;
   }
 }
 
+// Simple lien texte, pas un bouton avec un cadre visible.
 .reload-btn {
-  font-size: 0.8em;
-  padding: 2px 8px;
+  font-size: 0.85em;
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  color: $fg-dim;
+  box-shadow: none;
+
+  &:hover {
+    color: $fg;
+  }
 }
 
 .error-banner {
-  background-color: rgba(243, 139, 168, 0.15);
-  color: $action;
-  padding: 6px;
+  background-color: rgba($action, 0.14);
+  padding: 6px 4px 6px 10px;
   border-radius: 6px;
   margin-bottom: 6px;
+
+  .error-banner-text {
+    color: $action;
+  }
+
+  .error-banner-close {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: $action;
+    padding: 2px 8px;
+    font-weight: bold;
+  }
 }
 
 .empty {
@@ -70,27 +102,50 @@ window.MailWidget {
 }
 
 .badge {
-  font-size: 0.75em;
+  font-size: 0.72em;
   padding: 1px 6px;
   border-radius: 4px;
-  color: $bg;
   font-weight: bold;
+  letter-spacing: 0.03em;
 
+  // Fond = couleur d'urgence à 12% d'opacité sur le fond de carte (mesuré sur le design),
+  // texte = couleur d'urgence pleine. text-transform en majuscules (ex: "action" -> "ACTION").
   &.badge-action {
-    background-color: $action;
+    background-color: rgba($action, 0.12);
+    color: $action;
   }
 
   &.badge-info {
-    background-color: $info;
+    background-color: rgba($info, 0.12);
+    color: $info;
   }
 
   &.badge-bruit {
-    background-color: $bruit;
+    background-color: rgba($bruit, 0.12);
+    color: $bruit;
   }
 }
 
 .from {
-  font-weight: bold;
+  color: $fg-dim;
+  font-weight: normal;
+}
+
+// Petit indicateur rond "non lu", coloré comme l'urgence du fil.
+.unread-dot {
+  font-size: 0.6em;
+
+  &.dot-action {
+    color: $action;
+  }
+
+  &.dot-info {
+    color: $info;
+  }
+
+  &.dot-bruit {
+    color: $bruit;
+  }
 }
 
 .date,
@@ -101,6 +156,7 @@ window.MailWidget {
 
 .resume {
   margin: 2px 0;
+  font-weight: bold;
 }
 
 .status-message {
@@ -109,7 +165,7 @@ window.MailWidget {
 }
 
 .undo-bar {
-  background-color: rgba(243, 139, 168, 0.12);
+  background-color: rgba($action, 0.12);
   padding: 4px 6px;
   border-radius: 6px;
 }
@@ -123,13 +179,17 @@ window.MailWidget {
   padding: 2px 8px;
 }
 
+// Bouton "Copier XXXXXX": traitement distinct (bordure colorée), toujours en premier —
+// c'est l'action à faible friction qu'on veut pouvoir cliquer sans réfléchir.
 .otp-btn {
-  color: $info;
+  color: $action;
   font-weight: bold;
+  border: 1px solid $action;
+  background-color: rgba($action, 0.08);
 }
 
 .reply-box {
-  background-color: rgba(137, 180, 250, 0.1);
+  background-color: rgba($info, 0.08);
   padding: 6px;
   border-radius: 6px;
   margin-top: 4px;
@@ -141,7 +201,7 @@ window.MailWidget {
 }
 
 .reply-textview-scroll {
-  background-color: $bg;
+  background-color: $bg-card;
   border-radius: 4px;
   padding: 4px;
 }
