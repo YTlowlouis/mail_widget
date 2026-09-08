@@ -42,7 +42,7 @@ mail-widget-daemon
 
 Poll toutes les 3 minutes (`MAIL_WIDGET_POLL_SECONDS`), écrit l'état dans
 `~/.cache/mail-widget/state.json` après chaque cycle. Modèle par défaut :
-`llama-3.3-70b-versatile` (configurable via `MAIL_WIDGET_MODEL`).
+`openai/gpt-oss-20b` (configurable via `MAIL_WIDGET_MODEL`).
 
 ## Vérifier le résultat
 

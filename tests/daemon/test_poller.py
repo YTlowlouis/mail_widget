@@ -28,7 +28,7 @@ def _summary(message_id, subject, date, *, unread=True, in_reply_to=None, refere
 def _config(tmp_path):
     return Config(
         groq_api_key="x",
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-20b",
         poll_interval_seconds=180,
         poll_limit=30,
         poll_folder="INBOX",

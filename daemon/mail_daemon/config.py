@@ -47,7 +47,7 @@ def load_config() -> Config:
     )
     return Config(
         groq_api_key=api_key,
-        model=os.environ.get("MAIL_WIDGET_MODEL", "llama-3.3-70b-versatile"),
+        model=os.environ.get("MAIL_WIDGET_MODEL", "openai/gpt-oss-20b"),
         poll_interval_seconds=int(os.environ.get("MAIL_WIDGET_POLL_SECONDS", "180")),
         poll_limit=int(os.environ.get("MAIL_WIDGET_POLL_LIMIT", "30")),
         poll_folder=os.environ.get("MAIL_MCP_DEFAULT_FOLDER", "INBOX"),
