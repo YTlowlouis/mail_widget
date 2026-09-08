@@ -45,6 +45,15 @@ class Cache:
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """CREATE TABLE IF NOT EXISTS ne modifie pas une table déjà existante avec un schéma
+        plus ancien (ex: cache.sqlite3 créé avant l'ajout d'otp_code) — on complète ici."""
+        columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(threads)").fetchall()}
+        if "otp_code" not in columns:
+            self._conn.execute("ALTER TABLE threads ADD COLUMN otp_code TEXT")
+            self._conn.commit()
 
     def close(self) -> None:
         self._conn.close()

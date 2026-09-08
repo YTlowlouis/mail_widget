@@ -1,3 +1,5 @@
+import sqlite3
+
 from mail_daemon.cache import Cache
 
 
@@ -53,3 +55,37 @@ def test_cache_persists_across_instances(tmp_path):
     with Cache(db_path) as cache:
         assert cache.known_message_ids(["<a@x>"]) == {"<a@x>"}
         assert cache.get_thread("<a@x>").urgence == "bruit"
+
+
+def test_migrates_pre_existing_db_missing_otp_code_column(tmp_path):
+    db_path = tmp_path / "cache.sqlite3"
+    # Simule une base créée avant l'ajout d'otp_code: CREATE TABLE IF NOT EXISTS ne
+    # modifierait jamais ce schéma tout seul, il faut une vraie migration.
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE messages (
+            message_id TEXT PRIMARY KEY, thread_key TEXT NOT NULL, seen_at TEXT NOT NULL
+        );
+        CREATE TABLE threads (
+            thread_key TEXT PRIMARY KEY, resume TEXT NOT NULL, urgence TEXT NOT NULL,
+            raison TEXT NOT NULL, processed_at TEXT NOT NULL
+        );
+        """
+    )
+    conn.execute(
+        "INSERT INTO threads (thread_key, resume, urgence, raison, processed_at) VALUES (?, ?, ?, ?, ?)",
+        ("<old@x>", "ancien résumé", "info", "ancienne raison", "2026-01-01T00:00:00"),
+    )
+    conn.commit()
+    conn.close()
+
+    with Cache(db_path) as cache:
+        # Une ligne créée avant la migration doit rester lisible, avec otp_code à None.
+        old_record = cache.get_thread("<old@x>")
+        assert old_record.resume == "ancien résumé"
+        assert old_record.otp_code is None
+
+        # Et upsert_thread avec un otp_code doit maintenant fonctionner sans erreur SQL.
+        cache.upsert_thread("<new@x>", "résumé", "action", "code de connexion", otp_code="482913")
+        assert cache.get_thread("<new@x>").otp_code == "482913"
