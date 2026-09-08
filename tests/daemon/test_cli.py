@@ -24,6 +24,17 @@ def test_main_prints_result_to_stdout_and_exits_zero_on_success(monkeypatch, cap
     assert captured.err == ""
 
 
+def test_main_treats_non_error_non_ok_status_as_success(monkeypatch, capsys):
+    # unsubscribe renvoie "posted" ou "link_only" en cas de succès, jamais "ok" littéralement.
+    _patch_dispatch(monkeypatch, result={"status": "link_only", "url": "https://example.com/unsub", "detail": None})
+
+    cli.main(["unsubscribe", "<a@x>"])
+
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["status"] == "link_only"
+    assert captured.err == ""
+
+
 def test_main_prints_action_level_error_to_stdout_and_exits_one(monkeypatch, capsys):
     _patch_dispatch(monkeypatch, result={"status": "error", "message_id": "<a@x>", "detail": "dossier d'origine inconnu"})
 

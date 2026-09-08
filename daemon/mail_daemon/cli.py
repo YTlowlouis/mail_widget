@@ -55,7 +55,9 @@ def main(argv: list[str] | None = None) -> None:
     # autre appelant programmatique) n'a qu'un seul flux à lire, jamais besoin de choisir
     # entre stdout et stderr selon le cas.
     print(json.dumps(result, ensure_ascii=False))
-    if result.get("status") != "ok":
+    # unsubscribe a des statuts de succès qui ne sont pas "ok" ("posted"/"link_only"):
+    # seul "error" signale un échec, comme pour le contrat des tools MCP eux-mêmes.
+    if result.get("status") == "error":
         sys.exit(1)
 
 
