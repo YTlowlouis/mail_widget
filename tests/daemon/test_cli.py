@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import pytest
@@ -73,3 +74,42 @@ def test_main_dispatches_archive_folder_option(monkeypatch):
     cli.main(["archive", "<a@x>", "--folder", "Projets"])
 
     assert seen_args == {"folder": "Projets", "message_id": "<a@x>"}
+
+
+# -- _dispatch (routage réel commande -> actions.*) ---------------------------
+
+
+def test_dispatch_reply_calls_actions_reply(monkeypatch):
+    seen = {}
+
+    async def fake_reply(config, message_id, body):
+        seen["message_id"] = message_id
+        seen["body"] = body
+        return {"status": "ok"}
+
+    monkeypatch.setattr(cli, "load_config", lambda: object())
+    monkeypatch.setattr(cli.actions, "reply", fake_reply)
+
+    args = cli._build_parser().parse_args(["reply", "<a@x>", "Merci, je regarde ça."])
+    result = asyncio.run(cli._dispatch(args))
+
+    assert seen == {"message_id": "<a@x>", "body": "Merci, je regarde ça."}
+    assert result == {"status": "ok"}
+
+
+def test_dispatch_reload_calls_actions_reload(monkeypatch):
+    called = False
+
+    async def fake_reload(config):
+        nonlocal called
+        called = True
+        return {"status": "ok", "thread_count": 3}
+
+    monkeypatch.setattr(cli, "load_config", lambda: object())
+    monkeypatch.setattr(cli.actions, "reload", fake_reload)
+
+    args = cli._build_parser().parse_args(["reload"])
+    result = asyncio.run(cli._dispatch(args))
+
+    assert called is True
+    assert result == {"status": "ok", "thread_count": 3}

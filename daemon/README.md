@@ -63,10 +63,22 @@ mail-widget-ctl trash <message_id>
 mail-widget-ctl archive <message_id> [--folder "..."]
 mail-widget-ctl restore <message_id>
 mail-widget-ctl unsubscribe <message_id>
+mail-widget-ctl reply <message_id> "corps du brouillon"
 ```
 
 Chaque commande ouvre sa propre session MCP courte, appelle un seul tool d'écriture du
 serveur MCP, affiche le résultat en JSON sur stdout, et quitte (code 1 en cas d'erreur).
+`reply` enregistre un brouillon dans le dossier Brouillons — n'envoie jamais rien.
+
+```bash
+mail-widget-ctl reload
+```
+
+Force un cycle de poll immédiat (au lieu d'attendre jusqu'à `MAIL_WIDGET_POLL_SECONDS`) et
+réécrit `state.json`. Contrairement aux autres commandes, `reload` a besoin de
+`GROQ_API_KEY` (elle classe les nouveaux mails, donc appelle le modèle) — erreur claire si
+absente plutôt qu'un échec silencieux. Peut tourner en parallèle du daemon en arrière-plan
+sans risque de corruption (SQLite sérialise les écritures concurrentes).
 
 ## systemd (service utilisateur)
 

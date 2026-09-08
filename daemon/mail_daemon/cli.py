@@ -27,6 +27,12 @@ def _build_parser() -> argparse.ArgumentParser:
     unsubscribe_parser = sub.add_parser("unsubscribe", help="Tente un désabonnement")
     unsubscribe_parser.add_argument("message_id")
 
+    reply_parser = sub.add_parser("reply", help="Enregistre une réponse en brouillon (jamais envoyée)")
+    reply_parser.add_argument("message_id")
+    reply_parser.add_argument("body", help="Corps de la réponse, texte brut")
+
+    sub.add_parser("reload", help="Force un cycle de poll immédiat (nécessite GROQ_API_KEY)")
+
     return parser
 
 
@@ -40,6 +46,10 @@ async def _dispatch(args: argparse.Namespace) -> dict:
         return await actions.restore(config, args.message_id)
     if args.command == "unsubscribe":
         return await actions.unsubscribe(config, args.message_id)
+    if args.command == "reply":
+        return await actions.reply(config, args.message_id, args.body)
+    if args.command == "reload":
+        return await actions.reload(config)
     raise ValueError(f"Commande inconnue: {args.command}")
 
 
