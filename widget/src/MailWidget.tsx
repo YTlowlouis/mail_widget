@@ -1,7 +1,7 @@
 import app from "ags/gtk4/app"
 import { Astal, Gtk } from "ags/gtk4"
 import { For, createState } from "ags"
-import { threads, lastError } from "./state"
+import { threads, lastError, dismissError } from "./state"
 import ThreadCard from "./ThreadCard"
 import * as ctl from "./ctl"
 
@@ -36,27 +36,26 @@ export default function MailWidget() {
     >
       <box orientation={Gtk.Orientation.VERTICAL} class="root" widthRequest={380}>
         <box class="header" spacing={6}>
-          <label label="Mail" xalign={0} hexpand class="title" />
+          <label label="Mail" xalign={0} class="title" />
+          <label label={threads((t) => `${t.length} fils`)} xalign={0} hexpand class="thread-count" />
           <button onClicked={handleReload} sensitive={reloading((r) => !r)} class="reload-btn">
             <label label={reloading((r) => (r ? "Chargement…" : "Recharger"))} />
           </button>
         </box>
 
-        <label
-          label={reloadError((e) => e ?? "")}
-          class="error-banner"
-          visible={reloadError((e) => e !== null)}
-          wrap
-          xalign={0}
-        />
+        <box class="error-banner" visible={reloadError((e) => e !== null)}>
+          <label label={reloadError((e) => e ?? "")} class="error-banner-text" wrap xalign={0} hexpand />
+          <button onClicked={() => setReloadError(null)} class="error-banner-close">
+            <label label="×" />
+          </button>
+        </box>
 
-        <label
-          label={lastError((e) => e ?? "")}
-          class="error-banner"
-          visible={lastError((e) => e !== null)}
-          wrap
-          xalign={0}
-        />
+        <box class="error-banner" visible={lastError((e) => e !== null)}>
+          <label label={lastError((e) => e ?? "")} class="error-banner-text" wrap xalign={0} hexpand />
+          <button onClicked={dismissError} class="error-banner-close">
+            <label label="×" />
+          </button>
+        </box>
 
         <label
           label="Aucun mail à afficher"
